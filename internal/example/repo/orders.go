@@ -3,14 +3,14 @@ package repo
 import (
 	"context"
 
-	"github.com/koaim/tx/sql/driver"
+	"github.com/koaim/tx/sqltx"
 )
 
 type Orders struct {
-	conn driver.Conn
+	conn sqltx.Conn
 }
 
-func NewOrders(c driver.Conn) *Orders {
+func NewOrders(c sqltx.Conn) *Orders {
 	return &Orders{conn: c}
 }
 

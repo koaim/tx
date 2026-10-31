@@ -3,14 +3,14 @@ package repo
 import (
 	"context"
 
-	"github.com/koaim/tx/sql/driver"
+	"github.com/koaim/tx/sqltx"
 )
 
 type Users struct {
-	conn driver.Conn
+	conn sqltx.Conn
 }
 
-func NewUsers(c driver.Conn) *Users {
+func NewUsers(c sqltx.Conn) *Users {
 	return &Users{conn: c}
 }
 
