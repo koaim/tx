@@ -17,7 +17,7 @@ func NewManager[T any](conn *sql.DB, wrapToTx func(*sql.Tx) T) *Manager[T] {
 	return &Manager[T]{conn: conn, wrapToTx: wrapToTx}
 }
 
-func NewManagerWithOpts[T any](conn *sql.DB, wrapToTx func(*sql.Tx) T, opts *sql.TxOptions) *Manager[T] {
+func NewManagerWithOpts[T any](conn *sql.DB, opts *sql.TxOptions, wrapToTx func(*sql.Tx) T) *Manager[T] {
 	return &Manager[T]{conn: conn, wrapToTx: wrapToTx, opts: opts}
 }
 
