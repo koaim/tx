@@ -1,4 +1,4 @@
-.PHONY: test-db-reset
+.PHONY: test-db-reset test tests t
 
 test-db-reset:
 	docker compose rm --stop --force postgres
@@ -10,3 +10,6 @@ test-db-reset:
 			psql -X --username=tx --dbname=tx_test --set=ON_ERROR_STOP=1 \
 			< "$$migration"; \
 	done
+
+test tests t:
+	go test ./... ./gormtx/... ./pgxtx/... ./sqltx/... ./sqlxtx/...
