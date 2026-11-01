@@ -6,4 +6,5 @@ use (
 	./internal/example
 	./pgxtx
 	./sqltx
+	./sqlxtx
 )
