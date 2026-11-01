@@ -25,9 +25,9 @@ func TestInTx_OK(t *testing.T) {
 	t.Cleanup(func() { db.Close() })
 	t.Cleanup(func() { testdb.DeleteUser(t, db, name) })
 
-	mngr := sqltx.NewManager(db, func(tx *sql.Tx) testdb.Repo { return testdb.NewRepo(tx) })
+	mngr := sqltx.NewManager(db, func(tx *sql.Tx) repo { return newRepo(tx) })
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo testdb.Repo) error {
+	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		return repo.Save(ctx, name)
 	})
 
@@ -48,9 +48,9 @@ func TestInTx_ErrDb(t *testing.T) {
 	db := testdb.SqlConnect(t, dsn)
 	t.Cleanup(func() { db.Close() })
 
-	mngr := sqltx.NewManager(db, func(tx *sql.Tx) testdb.Repo { return testdb.NewRepo(tx) })
+	mngr := sqltx.NewManager(db, func(tx *sql.Tx) repo { return newRepo(tx) })
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo testdb.Repo) error {
+	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		repo.Save(ctx, name)
 		return repo.Save(ctx, tooLongName)
 	})
@@ -72,9 +72,9 @@ func TestInTx_ErrCallback(t *testing.T) {
 	db := testdb.SqlConnect(t, dsn)
 	t.Cleanup(func() { db.Close() })
 
-	mngr := sqltx.NewManager(db, func(tx *sql.Tx) testdb.Repo { return testdb.NewRepo(tx) })
+	mngr := sqltx.NewManager(db, func(tx *sql.Tx) repo { return newRepo(tx) })
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo testdb.Repo) error {
+	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		return errors.New("error")
 	})
 
@@ -91,9 +91,9 @@ func TestInTx_ErrReadonlyTx(t *testing.T) {
 	db := testdb.SqlConnect(t, dsn)
 	t.Cleanup(func() { db.Close() })
 
-	mngr := sqltx.NewManagerWithOpts(db, &sql.TxOptions{ReadOnly: true}, func(tx *sql.Tx) testdb.Repo { return testdb.NewRepo(tx) })
+	mngr := sqltx.NewManagerWithOpts(db, &sql.TxOptions{ReadOnly: true}, func(tx *sql.Tx) repo { return newRepo(tx) })
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo testdb.Repo) error {
+	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		return repo.Save(ctx, name)
 	})
 
@@ -122,9 +122,9 @@ func TestInTx_ErrRollback(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectRollback().WillReturnError(errRollback)
 
-	mngr := sqltx.NewManager(db, func(tx *sql.Tx) testdb.Repo { return testdb.NewRepo(tx) })
+	mngr := sqltx.NewManager(db, func(tx *sql.Tx) repo { return newRepo(tx) })
 
-	err = mngr.InTx(t.Context(), func(ctx context.Context, repo testdb.Repo) error {
+	err = mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		return errCallback
 	})
 
@@ -134,4 +134,21 @@ func TestInTx_ErrRollback(t *testing.T) {
 	if !errors.Is(err, errRollback) {
 		t.Errorf("\nwant: %q\nhave: %q", errRollback, err)
 	}
+}
+
+type repo struct {
+	conn sqltx.Conn
+}
+
+func newRepo(conn sqltx.Conn) repo {
+	return repo{conn: conn}
+}
+
+func (r *repo) Save(ctx context.Context, name string) error {
+	_, err := r.conn.ExecContext(ctx, "INSERT INTO users (name) VALUES($1)", name)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
