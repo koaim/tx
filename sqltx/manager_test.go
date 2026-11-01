@@ -83,6 +83,28 @@ func TestInTx_ErrCallback(t *testing.T) {
 	}
 }
 
+func TestInTx_ErrReadonlyTx(t *testing.T) {
+	t.Parallel()
+
+	name := uuid.NewV7().String()
+
+	db := testdb.SqlConnect(t, dsn)
+	t.Cleanup(func() { db.Close() })
+
+	mngr := sqltx.NewManagerWithOpts(db, &sql.TxOptions{ReadOnly: true}, func(tx *sql.Tx) testdb.Repo { return testdb.NewRepo(tx) })
+
+	err := mngr.InTx(t.Context(), func(ctx context.Context, repo testdb.Repo) error {
+		return repo.Save(ctx, name)
+	})
+
+	if err == nil {
+		t.Fatal("expected not nil err")
+	}
+	if testdb.UserExists(t, db, name) {
+		t.Fatalf("user %q should not have been saved to the database", name)
+	}
+}
+
 func TestInTx_ErrRollback(t *testing.T) {
 	t.Parallel()
 

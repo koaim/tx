@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+// Conn provides operations shared by pgx connections and transactions.
 type Conn interface {
 	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
 	Prepare(ctx context.Context, name, sql string) (*pgconn.StatementDescription, error)
