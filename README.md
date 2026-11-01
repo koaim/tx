@@ -27,18 +27,18 @@ go get github.com/koaim/tx/{sqltx,pgxtx,gormtx,sqlxtx}
 package handler
 
 import (
-	"context"
+    "context"
 
-	"github.com/koaim/tx"
-	"github.com/koaim/tx/internal/example/model"
+    "github.com/koaim/tx"
+    "github.com/koaim/tx/internal/example/model"
 )
 
 type users interface {
-	Save(ctx context.Context, user model.User) error
+    Save(ctx context.Context, user model.User) error
 }
 
 type orders interface {
-	Save(ctx context.Context, order model.Order) error
+    Save(ctx context.Context, order model.Order) error
 }
 
 type Tx struct {
@@ -55,7 +55,7 @@ type Handler struct {
 }
 
 func NewHandler(mngr tx.Manager[Tx]) *Handler {
-	return &Handler{txmngr: mngr}
+    return &Handler{txmngr: mngr}
 }
 
 func (h *Handler) Handle(ctx context.Context) error {
