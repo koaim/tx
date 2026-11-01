@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 
+	"github.com/koaim/tx/internal/example/model"
 	"github.com/koaim/tx/sqltx"
 )
 
@@ -14,6 +15,6 @@ func NewUsers(c sqltx.Conn) *Users {
 	return &Users{conn: c}
 }
 
-func (u *Users) SaveUser(ctx context.Context, name string) error {
+func (u *Users) Save(ctx context.Context, user model.User) error {
 	return nil
 }

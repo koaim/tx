@@ -4,14 +4,15 @@ import (
 	"context"
 
 	"github.com/koaim/tx"
+	"github.com/koaim/tx/internal/example/model"
 )
 
 type users interface {
-	SaveUser(ctx context.Context, name string) error
+	Save(ctx context.Context, user model.User) error
 }
 
 type orders interface {
-	SaveOrder(ctx context.Context, name string) error
+	Save(ctx context.Context, order model.Order) error
 }
 
 type Tx struct {
@@ -33,8 +34,8 @@ func NewHandler(mngr tx.Manager[Tx]) *Handler {
 
 func (h *Handler) Handle(ctx context.Context) error {
 	return h.txmngr.InTx(ctx, func(ctx context.Context, repo Tx) error {
-		repo.orders.SaveOrder(ctx, "name")
-		repo.users.SaveUser(ctx, "name")
+		repo.orders.Save(ctx, model.Order{})
+		repo.users.Save(ctx, model.User{})
 
 		return nil
 	})

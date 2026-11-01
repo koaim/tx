@@ -5,6 +5,7 @@ import (
 	"database/sql"
 )
 
+// Conn provides operations shared by sql.DB, sql.Conn, and sql.Tx.
 type Conn interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
 	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
