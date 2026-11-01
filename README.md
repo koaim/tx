@@ -59,12 +59,12 @@ func NewHandler(mngr tx.Manager[Tx]) *Handler {
 }
 
 func (h *Handler) Handle(ctx context.Context) error {
-	return h.txmngr.InTx(ctx, func(ctx context.Context, repo Tx) error {
+    return h.txmngr.InTx(ctx, func(ctx context.Context, repo Tx) error {
         // this code is running in transaction scope
         repo.orders.Save(ctx, model.Order{})
         repo.users.Save(ctx, model.User{})
 
         return nil
-	})
+    })
 }
 ```
