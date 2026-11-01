@@ -4,20 +4,31 @@
 [![GoDoc](https://godoc.org/github.com/koaim/tx?status.svg)](https://godoc.org/github.com/koaim/tx) [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat)](https://raw.githubusercontent.com/koaim/tx/main/LICENSE)
 [![codecov](https://codecov.io/gh/koaim/tx/branch/main/graph/badge.svg)](https://codecov.io/gh/koaim/tx)
 
-Tiny transaction manager
+A tiny transaction manager
 
 ## Installation
 
+Install the core library:
+
 ```bash
 go get github.com/koaim/tx
-go get github.com/koaim/tx/{sqltx,pgxtx,gormtx,sqlxtx}
 ```
+
+Then install the adapter for your database library:
+
+| Library | Installation command |
+| --- | --- |
+| `database/sql` | `go get github.com/koaim/tx/sqltx` |
+| `sqlx` | `go get github.com/koaim/tx/sqlxtx` |
+| `pgx` | `go get github.com/koaim/tx/pgxtx` |
+| `gorm` | `go get github.com/koaim/tx/gormtx` |
 
 ## Features
 
 - Does not store transactions in `context.Context`
 - Works with `database/sql`, `sqlx`, `pgx`, and `gorm`
 - Compatible with `sqlc` and `jet`
+- Configurable transaction isolation levels
 
 ## Example
 
@@ -60,7 +71,7 @@ func NewHandler(mngr tx.Manager[Tx]) *Handler {
 
 func (h *Handler) Handle(ctx context.Context) error {
     return h.txmngr.InTx(ctx, func(ctx context.Context, repo Tx) error {
-        // this code is running in transaction scope
+        // this code runs within a transaction.
         repo.orders.Save(ctx, model.Order{})
         repo.users.Save(ctx, model.User{})
 
