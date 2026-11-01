@@ -7,10 +7,11 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-// Conn provides operations shared by pgx connections and transactions.
+// Conn provides operations shared by pgxpool.Pool and pgx.Tx.
 type Conn interface {
+	Begin(ctx context.Context) (pgx.Tx, error)
+	CopyFrom(ctx context.Context, tableName pgx.Identifier, columnNames []string, rowSrc pgx.CopyFromSource) (int64, error)
 	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
-	Prepare(ctx context.Context, name, sql string) (*pgconn.StatementDescription, error)
 	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
 	SendBatch(ctx context.Context, b *pgx.Batch) pgx.BatchResults
