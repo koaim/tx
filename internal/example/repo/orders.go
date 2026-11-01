@@ -3,6 +3,7 @@ package repo
 import (
 	"context"
 
+	"github.com/koaim/tx/internal/example/model"
 	"github.com/koaim/tx/sqltx"
 )
 
@@ -14,6 +15,6 @@ func NewOrders(c sqltx.Conn) *Orders {
 	return &Orders{conn: c}
 }
 
-func (o *Orders) SaveOrder(ctx context.Context, name string) error {
+func (o *Orders) Save(ctx context.Context, order model.Order) error {
 	return nil
 }
