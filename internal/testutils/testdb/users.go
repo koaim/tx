@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func RowExists(t *testing.T, conn *sql.DB, name string) bool {
+func UserExists(t *testing.T, conn *sql.DB, name string) bool {
 	t.Helper()
 
 	var exists bool
@@ -19,7 +19,7 @@ func RowExists(t *testing.T, conn *sql.DB, name string) bool {
 	return exists
 }
 
-func DeleteRow(t *testing.T, conn *sql.DB, name string) {
+func DeleteUser(t *testing.T, conn *sql.DB, name string) {
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(context.WithoutCancel(t.Context()), 5*time.Second)

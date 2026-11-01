@@ -23,7 +23,7 @@ func TestInTx_OK(t *testing.T) {
 
 	db := testdb.SqlConnect(t, dsn)
 	t.Cleanup(func() { db.Close() })
-	t.Cleanup(func() { testdb.DeleteRow(t, db, name) })
+	t.Cleanup(func() { testdb.DeleteUser(t, db, name) })
 
 	mngr := sqltx.NewManager(db, func(tx *sql.Tx) testdb.Repo { return testdb.NewRepo(tx) })
 
@@ -34,8 +34,8 @@ func TestInTx_OK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !testdb.RowExists(t, db, name) {
-		t.Fatalf("name %q not exists in db", name)
+	if !testdb.UserExists(t, db, name) {
+		t.Fatalf("user %q not exists in db", name)
 	}
 }
 
@@ -58,11 +58,11 @@ func TestInTx_ErrDb(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not nil err")
 	}
-	if testdb.RowExists(t, db, tooLongName) {
-		t.Fatalf("name %q should not have been saved to the database", tooLongName)
+	if testdb.UserExists(t, db, tooLongName) {
+		t.Fatalf("user %q should not have been saved to the database", tooLongName)
 	}
-	if testdb.RowExists(t, db, name) {
-		t.Fatalf("name %q should not have been saved to the database", name)
+	if testdb.UserExists(t, db, name) {
+		t.Fatalf("user %q should not have been saved to the database", name)
 	}
 }
 
@@ -107,9 +107,9 @@ func TestInTx_ErrRollback(t *testing.T) {
 	})
 
 	if !errors.Is(err, errCallback) {
-		t.Errorf("want %q, got %q", errCallback, err)
+		t.Errorf("\nwant: %q\nhave: %q", errCallback, err)
 	}
 	if !errors.Is(err, errRollback) {
-		t.Errorf("want %q, got %q", errRollback, err)
+		t.Errorf("\nwant: %q\nhave: %q", errRollback, err)
 	}
 }
