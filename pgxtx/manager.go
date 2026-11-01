@@ -40,7 +40,7 @@ func (m *Manager[T]) InTx(ctx context.Context, f func(ctx context.Context, repo 
 
 	defer func() {
 		rlbckErr := tx.Rollback(ctx)
-		if rlbckErr != nil && !errors.Is(err, pgx.ErrTxClosed) {
+		if rlbckErr != nil && !errors.Is(rlbckErr, pgx.ErrTxClosed) {
 			err = errors.Join(err, rlbckErr)
 		}
 	}()
