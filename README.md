@@ -23,12 +23,6 @@ Then install the adapter for your database library:
 | `pgx` | `go get github.com/koaim/tx/pgxtx` |
 | `gorm` | `go get github.com/koaim/tx/gormtx` |
 
-### Compatibility
-
-All modules require Go 1.25.0 or later, including their test dependencies.
-
-Tests live alongside the adapter implementations. Run `make test` to test all modules against the test database, or `make coverage` to generate a coverage report.
-
 ## Features
 
 - Does not store transactions in `context.Context`
