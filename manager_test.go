@@ -23,7 +23,7 @@ func TestInTx_OK(t *testing.T) {
 	r := &repo{}
 	mngr := tx.NewFakeManager(r)
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, r *repo) error {
+	err := mngr.InTx(context.Background(), func(ctx context.Context, r *repo) error {
 		r.Ok()
 		return nil
 	})
@@ -42,7 +42,7 @@ func TestInTx_Err(t *testing.T) {
 	r := repo{}
 	mngr := tx.NewFakeManager(r)
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, r repo) error {
+	err := mngr.InTx(context.Background(), func(ctx context.Context, r repo) error {
 		return r.Error()
 	})
 

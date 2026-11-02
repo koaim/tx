@@ -2,10 +2,10 @@ package sqlxtx_test
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"errors"
 	"testing"
-	"uuid"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
@@ -16,7 +16,7 @@ import (
 func TestInTx_OK(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
+	name := rand.Text()
 
 	db := testdb.New(t)
 	t.Cleanup(func() { db.DeleteUser(t, name) })
@@ -38,8 +38,8 @@ func TestInTx_OK(t *testing.T) {
 func TestInTx_ErrDb(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
-	tooLongName := uuid.NewV7().String() + uuid.NewV7().String()
+	name := rand.Text()
+	tooLongName := rand.Text() + rand.Text()
 
 	db := testdb.New(t)
 	mngr := sqlxtx.NewManager(sqlx.NewDb(db.Conn, "pgx"), func(tx *sqlx.Tx) repo { return newRepo(tx) })
@@ -78,7 +78,7 @@ func TestInTx_ErrCallback(t *testing.T) {
 func TestInTx_ErrReadonlyTx(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
+	name := rand.Text()
 
 	db := testdb.New(t)
 	mngr := sqlxtx.NewManagerWithOpts(sqlx.NewDb(db.Conn, "pgx"), &sql.TxOptions{ReadOnly: true}, func(tx *sqlx.Tx) repo { return newRepo(tx) })

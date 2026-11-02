@@ -1,6 +1,6 @@
 module github.com/koaim/tx/internal/example
 
-go 1.27.0
+go 1.25.0
 
 require (
 	github.com/koaim/tx v0.0.0

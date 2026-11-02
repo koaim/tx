@@ -1,0 +1,39 @@
+name: Compatibility
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+jobs:
+  minimum-go:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - module: .
+            go: '1.25.0'
+          - module: gormtx
+            go: '1.25.0'
+          - module: sqltx
+            go: '1.25.0'
+          - module: sqlxtx
+            go: '1.25.0'
+          - module: pgxtx
+            go: '1.25.0'
+          - module: internal/example
+            go: '1.25.0'
+    env:
+      GOWORK: 'off'
+      GOTOOLCHAIN: local
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+          cache: false
+      - name: prepare test database
+        run: make test-db-reset
+      - name: check module independently
+        working-directory: ${{ matrix.module }}
+        run: go test -mod=readonly ./...

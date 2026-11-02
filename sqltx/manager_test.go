@@ -2,10 +2,10 @@ package sqltx_test
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"errors"
 	"testing"
-	"uuid"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/koaim/tx/internal/testutils/testdb"
@@ -15,7 +15,7 @@ import (
 func TestInTx_OK(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
+	name := rand.Text()
 
 	db := testdb.New(t)
 	t.Cleanup(func() { db.DeleteUser(t, name) })
@@ -37,8 +37,8 @@ func TestInTx_OK(t *testing.T) {
 func TestInTx_ErrDb(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
-	tooLongName := uuid.NewV7().String() + uuid.NewV7().String()
+	name := rand.Text()
+	tooLongName := rand.Text() + rand.Text()
 
 	db := testdb.New(t)
 	mngr := sqltx.NewManager(db.Conn, func(tx *sql.Tx) repo { return newRepo(tx) })
@@ -77,7 +77,7 @@ func TestInTx_ErrCallback(t *testing.T) {
 func TestInTx_ErrReadonlyTx(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
+	name := rand.Text()
 
 	db := testdb.New(t)
 	mngr := sqltx.NewManagerWithOpts(db.Conn, &sql.TxOptions{ReadOnly: true}, func(tx *sql.Tx) repo { return newRepo(tx) })
