@@ -71,7 +71,7 @@ func NewHandler(mngr tx.Manager[Tx]) *Handler {
 
 func (h *Handler) Handle(ctx context.Context) error {
     return h.txmngr.InTx(ctx, func(ctx context.Context, repo Tx) error {
-        // this code runs within a transaction.
+        // this code runs within a transaction
         repo.orders.Save(ctx, model.Order{})
         repo.users.Save(ctx, model.User{})
 

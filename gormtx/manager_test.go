@@ -14,20 +14,15 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-const (
-	dsn = "postgres://tx:tx@127.0.0.1:5432/tx_test?sslmode=disable"
-)
-
 func TestInTx_OK(t *testing.T) {
 	t.Parallel()
 
 	name := uuid.NewV7().String()
 
-	db := testdb.SqlConnect(t, dsn)
-	t.Cleanup(func() { db.Close() })
-	t.Cleanup(func() { testdb.DeleteUser(t, db, name) })
+	db := testdb.NewDB(t)
+	t.Cleanup(func() { db.DeleteUser(t, name) })
 
-	conn, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	conn, err := gorm.Open(postgres.New(postgres.Config{Conn: db.Conn}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -41,7 +36,7 @@ func TestInTx_OK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !testdb.UserExists(t, db, name) {
+	if !db.UsersExists(t, name) {
 		t.Fatalf("user %q not exists in db", name)
 	}
 }
@@ -52,10 +47,9 @@ func TestInTx_ErrDb(t *testing.T) {
 	name := uuid.NewV7().String()
 	tooLongName := uuid.NewV7().String() + uuid.NewV7().String()
 
-	db := testdb.SqlConnect(t, dsn)
-	t.Cleanup(func() { db.Close() })
+	db := testdb.NewDB(t)
 
-	conn, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	conn, err := gorm.Open(postgres.New(postgres.Config{Conn: db.Conn}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,10 +64,10 @@ func TestInTx_ErrDb(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not nil err")
 	}
-	if testdb.UserExists(t, db, tooLongName) {
+	if db.UsersExists(t, tooLongName) {
 		t.Fatalf("user %q should not have been saved to the database", tooLongName)
 	}
-	if testdb.UserExists(t, db, name) {
+	if db.UsersExists(t, name) {
 		t.Fatalf("user %q should not have been saved to the database", name)
 	}
 }
@@ -81,10 +75,9 @@ func TestInTx_ErrDb(t *testing.T) {
 func TestInTx_ErrCallback(t *testing.T) {
 	t.Parallel()
 
-	db := testdb.SqlConnect(t, dsn)
-	t.Cleanup(func() { db.Close() })
+	db := testdb.NewDB(t)
 
-	conn, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	conn, err := gorm.Open(postgres.New(postgres.Config{Conn: db.Conn}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,10 +98,9 @@ func TestInTx_ErrReadonlyTx(t *testing.T) {
 
 	name := uuid.NewV7().String()
 
-	db := testdb.SqlConnect(t, dsn)
-	t.Cleanup(func() { db.Close() })
+	db := testdb.NewDB(t)
 
-	conn, err := gorm.Open(postgres.New(postgres.Config{Conn: db}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
+	conn, err := gorm.Open(postgres.New(postgres.Config{Conn: db.Conn}), &gorm.Config{Logger: logger.Default.LogMode(logger.Silent)})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +114,7 @@ func TestInTx_ErrReadonlyTx(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not nil err")
 	}
-	if testdb.UserExists(t, db, name) {
+	if db.UsersExists(t, name) {
 		t.Fatalf("user %q should not have been saved to the database", name)
 	}
 }

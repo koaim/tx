@@ -18,13 +18,15 @@ const (
 func TestInTx_OK(t *testing.T) {
 	t.Parallel()
 
+	db := testdb.NewDB(t)
+
 	name := uuid.NewV7().String()
 
-	db := testdb.PgxConnect(t, dsn)
-	t.Cleanup(func() { db.Close(t.Context()) })
-	t.Cleanup(func() { testdb.PgxDeleteUser(t, db, name) })
+	conn := testdb.PgxConnect(t, dsn)
+	t.Cleanup(func() { conn.Close(t.Context()) })
+	t.Cleanup(func() { db.DeleteUser(t, name) })
 
-	mngr := pgxtx.NewManager(db, func(tx pgx.Tx) repo { return newRepo(tx) })
+	mngr := pgxtx.NewManager(conn, func(tx pgx.Tx) repo { return newRepo(tx) })
 
 	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		return repo.Save(ctx, name)
@@ -33,7 +35,7 @@ func TestInTx_OK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !testdb.PgxUserExists(t, db, name) {
+	if !db.UsersExists(t, name) {
 		t.Fatalf("user %q not exists in db", name)
 	}
 }
@@ -41,13 +43,15 @@ func TestInTx_OK(t *testing.T) {
 func TestInTx_ErrDb(t *testing.T) {
 	t.Parallel()
 
+	db := testdb.NewDB(t)
+
 	name := uuid.NewV7().String()
 	tooLongName := uuid.NewV7().String() + uuid.NewV7().String()
 
-	db := testdb.PgxConnect(t, dsn)
-	t.Cleanup(func() { db.Close(t.Context()) })
+	conn := testdb.PgxConnect(t, dsn)
+	t.Cleanup(func() { conn.Close(t.Context()) })
 
-	mngr := pgxtx.NewManager(db, func(tx pgx.Tx) repo { return newRepo(tx) })
+	mngr := pgxtx.NewManager(conn, func(tx pgx.Tx) repo { return newRepo(tx) })
 
 	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		repo.Save(ctx, name)
@@ -57,10 +61,10 @@ func TestInTx_ErrDb(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not nil err")
 	}
-	if testdb.PgxUserExists(t, db, tooLongName) {
+	if db.UsersExists(t, tooLongName) {
 		t.Fatalf("user %q should not have been saved to the database", tooLongName)
 	}
-	if testdb.PgxUserExists(t, db, name) {
+	if db.UsersExists(t, name) {
 		t.Fatalf("user %q should not have been saved to the database", name)
 	}
 }
@@ -87,10 +91,12 @@ func TestInTx_ErrReadonlyTx(t *testing.T) {
 
 	name := uuid.NewV7().String()
 
-	db := testdb.PgxConnect(t, dsn)
-	t.Cleanup(func() { db.Close(t.Context()) })
+	db := testdb.NewDB(t)
 
-	mngr := pgxtx.NewManagerWithOpts(db, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) repo { return newRepo(tx) })
+	conn := testdb.PgxConnect(t, dsn)
+	t.Cleanup(func() { conn.Close(t.Context()) })
+
+	mngr := pgxtx.NewManagerWithOpts(conn, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) repo { return newRepo(tx) })
 
 	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		return repo.Save(ctx, name)
@@ -99,7 +105,7 @@ func TestInTx_ErrReadonlyTx(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not nil err")
 	}
-	if testdb.PgxUserExists(t, db, name) {
+	if db.UsersExists(t, name) {
 		t.Fatalf("user %q should not have been saved to the database", name)
 	}
 }
