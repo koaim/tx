@@ -79,3 +79,31 @@ func (h *Handler) Handle(ctx context.Context) error {
     })
 }
 ```
+
+## Philosophy
+
+Working with transactions in Go can be awkward. Three common approaches are:
+
+- Storing the transaction in `context.Context`
+- Working directly with `*sql.Tx` in the business logic layer
+- Using a single god object for all entities and database operations
+
+Each of these approaches has drawbacks that I am not willing to accept, so I built an alternative.
+
+This project defines an interface for running transactions:
+
+```go
+type Manager[T any] interface {
+    InTx(ctx context.Context, f func(ctx context.Context, repo T) error) error
+}
+```
+
+Adapters implement this interface for `database/sql`, `sqlx`, `pgx`, and `gorm`.
+For libraries such as `database/sql` and `pgx`, repositories should depend on an abstraction such as `sqltx.Conn` or `pgxtx.Conn` rather than a concrete type such as `*sql.DB` or `*pgxpool.Pool`. These interfaces expose operations shared by connections and transactions, allowing the same repository implementation to work with either.
+
+As a result, the repository never knows whether it is working with a regular connection or a transaction.
+
+### Trade-off
+
+- The library requires a connection pool (`*sql.DB` or `*pgxpool.Pool`) rather than a single connection (`*sql.Conn` or `*pgx.Conn`)
+- Nested transactions are not supported
