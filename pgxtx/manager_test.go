@@ -2,38 +2,35 @@ package pgxtx_test
 
 import (
 	"context"
+	"crypto/rand"
 	"errors"
 	"testing"
-	"uuid"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/koaim/tx/internal/testutils/testdb"
 	"github.com/koaim/tx/pgxtx"
 )
 
-const (
-	dsn = "postgres://tx:tx@127.0.0.1:5432/tx_test?sslmode=disable"
-)
-
 func TestInTx_OK(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
+	name := rand.Text()
 
-	db := testdb.PgxConnect(t, dsn)
-	t.Cleanup(func() { db.Close(t.Context()) })
-	t.Cleanup(func() { testdb.PgxDeleteUser(t, db, name) })
+	db := testdb.New(t)
+	t.Cleanup(func() { db.DeleteUser(t, name) })
 
-	mngr := pgxtx.NewManager(db, func(tx pgx.Tx) repo { return newRepo(tx) })
+	err := db.WithPgxConn(t, func(conn *pgx.Conn) error {
+		mngr := pgxtx.NewManager(conn, func(tx pgx.Tx) repo { return newRepo(tx) })
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
-		return repo.Save(ctx, name)
+		return mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
+			return repo.Save(ctx, name)
+		})
 	})
 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !testdb.PgxUserExists(t, db, name) {
+	if !db.UsersExists(t, name) {
 		t.Fatalf("user %q not exists in db", name)
 	}
 }
@@ -41,26 +38,27 @@ func TestInTx_OK(t *testing.T) {
 func TestInTx_ErrDb(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
-	tooLongName := uuid.NewV7().String() + uuid.NewV7().String()
+	name := rand.Text()
+	tooLongName := rand.Text() + rand.Text()
 
-	db := testdb.PgxConnect(t, dsn)
-	t.Cleanup(func() { db.Close(t.Context()) })
+	db := testdb.New(t)
 
-	mngr := pgxtx.NewManager(db, func(tx pgx.Tx) repo { return newRepo(tx) })
+	err := db.WithPgxConn(t, func(conn *pgx.Conn) error {
+		mngr := pgxtx.NewManager(conn, func(tx pgx.Tx) repo { return newRepo(tx) })
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
-		repo.Save(ctx, name)
-		return repo.Save(ctx, tooLongName)
+		return mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
+			repo.Save(ctx, name)
+			return repo.Save(ctx, tooLongName)
+		})
 	})
 
 	if err == nil {
 		t.Fatal("expected not nil err")
 	}
-	if testdb.PgxUserExists(t, db, tooLongName) {
+	if db.UsersExists(t, tooLongName) {
 		t.Fatalf("user %q should not have been saved to the database", tooLongName)
 	}
-	if testdb.PgxUserExists(t, db, name) {
+	if db.UsersExists(t, name) {
 		t.Fatalf("user %q should not have been saved to the database", name)
 	}
 }
@@ -68,13 +66,14 @@ func TestInTx_ErrDb(t *testing.T) {
 func TestInTx_ErrCallback(t *testing.T) {
 	t.Parallel()
 
-	db := testdb.PgxConnect(t, dsn)
-	t.Cleanup(func() { db.Close(t.Context()) })
+	db := testdb.New(t)
 
-	mngr := pgxtx.NewManager(db, func(tx pgx.Tx) repo { return newRepo(tx) })
+	err := db.WithPgxConn(t, func(conn *pgx.Conn) error {
+		mngr := pgxtx.NewManager(conn, func(tx pgx.Tx) repo { return newRepo(tx) })
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
-		return errors.New("error")
+		return mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
+			return errors.New("error")
+		})
 	})
 
 	if err == nil {
@@ -85,21 +84,22 @@ func TestInTx_ErrCallback(t *testing.T) {
 func TestInTx_ErrReadonlyTx(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
+	name := rand.Text()
 
-	db := testdb.PgxConnect(t, dsn)
-	t.Cleanup(func() { db.Close(t.Context()) })
+	db := testdb.New(t)
 
-	mngr := pgxtx.NewManagerWithOpts(db, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) repo { return newRepo(tx) })
+	err := db.WithPgxConn(t, func(conn *pgx.Conn) error {
+		mngr := pgxtx.NewManagerWithOpts(conn, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) repo { return newRepo(tx) })
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
-		return repo.Save(ctx, name)
+		return mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
+			return repo.Save(ctx, name)
+		})
 	})
 
 	if err == nil {
 		t.Fatal("expected not nil err")
 	}
-	if testdb.PgxUserExists(t, db, name) {
+	if db.UsersExists(t, name) {
 		t.Fatalf("user %q should not have been saved to the database", name)
 	}
 }

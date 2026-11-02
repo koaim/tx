@@ -2,10 +2,10 @@ package sqlxtx_test
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"errors"
 	"testing"
-	"uuid"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/jmoiron/sqlx"
@@ -13,22 +13,15 @@ import (
 	"github.com/koaim/tx/sqlxtx"
 )
 
-const (
-	dsn = "postgres://tx:tx@127.0.0.1:5432/tx_test?sslmode=disable"
-)
-
 func TestInTx_OK(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
+	name := rand.Text()
 
-	db := testdb.SqlConnect(t, dsn)
-	t.Cleanup(func() { db.Close() })
-	t.Cleanup(func() { testdb.DeleteUser(t, db, name) })
+	db := testdb.New(t)
+	t.Cleanup(func() { db.DeleteUser(t, name) })
 
-	conn := sqlx.NewDb(db, "pgx")
-
-	mngr := sqlxtx.NewManager(conn, func(tx *sqlx.Tx) repo { return newRepo(tx) })
+	mngr := sqlxtx.NewManager(sqlx.NewDb(db.Conn, "pgx"), func(tx *sqlx.Tx) repo { return newRepo(tx) })
 
 	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		return repo.Save(ctx, name)
@@ -37,7 +30,7 @@ func TestInTx_OK(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !testdb.UserExists(t, db, name) {
+	if !db.UsersExists(t, name) {
 		t.Fatalf("user %q not exists in db", name)
 	}
 }
@@ -45,15 +38,11 @@ func TestInTx_OK(t *testing.T) {
 func TestInTx_ErrDb(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
-	tooLongName := uuid.NewV7().String() + uuid.NewV7().String()
+	name := rand.Text()
+	tooLongName := rand.Text() + rand.Text()
 
-	db := testdb.SqlConnect(t, dsn)
-	t.Cleanup(func() { db.Close() })
-
-	conn := sqlx.NewDb(db, "pgx")
-
-	mngr := sqlxtx.NewManager(conn, func(tx *sqlx.Tx) repo { return newRepo(tx) })
+	db := testdb.New(t)
+	mngr := sqlxtx.NewManager(sqlx.NewDb(db.Conn, "pgx"), func(tx *sqlx.Tx) repo { return newRepo(tx) })
 
 	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		repo.Save(ctx, name)
@@ -63,10 +52,10 @@ func TestInTx_ErrDb(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not nil err")
 	}
-	if testdb.UserExists(t, db, tooLongName) {
+	if db.UsersExists(t, tooLongName) {
 		t.Fatalf("user %q should not have been saved to the database", tooLongName)
 	}
-	if testdb.UserExists(t, db, name) {
+	if db.UsersExists(t, name) {
 		t.Fatalf("user %q should not have been saved to the database", name)
 	}
 }
@@ -74,12 +63,8 @@ func TestInTx_ErrDb(t *testing.T) {
 func TestInTx_ErrCallback(t *testing.T) {
 	t.Parallel()
 
-	db := testdb.SqlConnect(t, dsn)
-	t.Cleanup(func() { db.Close() })
-
-	conn := sqlx.NewDb(db, "pgx")
-
-	mngr := sqlxtx.NewManager(conn, func(tx *sqlx.Tx) repo { return newRepo(tx) })
+	db := testdb.New(t)
+	mngr := sqlxtx.NewManager(sqlx.NewDb(db.Conn, "pgx"), func(tx *sqlx.Tx) repo { return newRepo(tx) })
 
 	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		return errors.New("error")
@@ -93,14 +78,10 @@ func TestInTx_ErrCallback(t *testing.T) {
 func TestInTx_ErrReadonlyTx(t *testing.T) {
 	t.Parallel()
 
-	name := uuid.NewV7().String()
+	name := rand.Text()
 
-	db := testdb.SqlConnect(t, dsn)
-	t.Cleanup(func() { db.Close() })
-
-	conn := sqlx.NewDb(db, "pgx")
-
-	mngr := sqlxtx.NewManagerWithOpts(conn, &sql.TxOptions{ReadOnly: true}, func(tx *sqlx.Tx) repo { return newRepo(tx) })
+	db := testdb.New(t)
+	mngr := sqlxtx.NewManagerWithOpts(sqlx.NewDb(db.Conn, "pgx"), &sql.TxOptions{ReadOnly: true}, func(tx *sqlx.Tx) repo { return newRepo(tx) })
 
 	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
 		return repo.Save(ctx, name)
@@ -109,7 +90,7 @@ func TestInTx_ErrReadonlyTx(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected not nil err")
 	}
-	if testdb.UserExists(t, db, name) {
+	if db.UsersExists(t, name) {
 		t.Fatalf("user %q should not have been saved to the database", name)
 	}
 }

@@ -1,4 +1,4 @@
-.PHONY: test-db-reset test tests t
+.PHONY: test-db-reset test tests t coverage
 
 test-db-reset:
 	docker compose rm --stop --force postgres
@@ -12,4 +12,7 @@ test-db-reset:
 	done
 
 test tests t:
-	go test ./... ./gormtx/... ./pgxtx/... ./sqltx/... ./sqlxtx/...
+	go test ./... ./gormtx/... ./pgxtx/... ./sqltx/... ./sqlxtx/... ./internal/example/...
+
+coverage:
+	go test ./... ./gormtx/... ./pgxtx/... ./sqltx/... ./sqlxtx/... -coverpkg=github.com/koaim/tx,github.com/koaim/tx/gormtx,github.com/koaim/tx/pgxtx,github.com/koaim/tx/sqltx,github.com/koaim/tx/sqlxtx -coverprofile=coverage.out -covermode=atomic

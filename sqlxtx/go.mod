@@ -1,8 +1,20 @@
 module github.com/koaim/tx/sqlxtx
 
-go 1.27.0
+go 1.25.0
+
+require github.com/jmoiron/sqlx v1.4.0
+
+require github.com/koaim/tx v0.0.0
+
+replace github.com/koaim/tx => ..
+
+require github.com/DATA-DOG/go-sqlmock v1.5.2
 
 require (
-	github.com/DATA-DOG/go-sqlmock v1.5.2
-	github.com/jmoiron/sqlx v1.4.0
+	github.com/jackc/pgpassfile v1.0.0 // indirect
+	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect
+	github.com/jackc/pgx/v5 v5.12.0 // indirect
+	github.com/jackc/puddle/v2 v2.2.3 // indirect
+	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
 )
