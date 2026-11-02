@@ -11,25 +11,20 @@ import (
 	"github.com/koaim/tx/pgxtx"
 )
 
-const (
-	dsn = "postgres://tx:tx@127.0.0.1:5432/tx_test?sslmode=disable"
-)
-
 func TestInTx_OK(t *testing.T) {
 	t.Parallel()
 
-	db := testdb.NewDB(t)
-
 	name := uuid.NewV7().String()
 
-	conn := testdb.PgxConnect(t, dsn)
-	t.Cleanup(func() { conn.Close(t.Context()) })
+	db := testdb.New(t)
 	t.Cleanup(func() { db.DeleteUser(t, name) })
 
-	mngr := pgxtx.NewManager(conn, func(tx pgx.Tx) repo { return newRepo(tx) })
+	err := db.WithPgxConn(t, func(conn *pgx.Conn) error {
+		mngr := pgxtx.NewManager(conn, func(tx pgx.Tx) repo { return newRepo(tx) })
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
-		return repo.Save(ctx, name)
+		return mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
+			return repo.Save(ctx, name)
+		})
 	})
 
 	if err != nil {
@@ -43,19 +38,18 @@ func TestInTx_OK(t *testing.T) {
 func TestInTx_ErrDb(t *testing.T) {
 	t.Parallel()
 
-	db := testdb.NewDB(t)
-
 	name := uuid.NewV7().String()
 	tooLongName := uuid.NewV7().String() + uuid.NewV7().String()
 
-	conn := testdb.PgxConnect(t, dsn)
-	t.Cleanup(func() { conn.Close(t.Context()) })
+	db := testdb.New(t)
 
-	mngr := pgxtx.NewManager(conn, func(tx pgx.Tx) repo { return newRepo(tx) })
+	err := db.WithPgxConn(t, func(conn *pgx.Conn) error {
+		mngr := pgxtx.NewManager(conn, func(tx pgx.Tx) repo { return newRepo(tx) })
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
-		repo.Save(ctx, name)
-		return repo.Save(ctx, tooLongName)
+		return mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
+			repo.Save(ctx, name)
+			return repo.Save(ctx, tooLongName)
+		})
 	})
 
 	if err == nil {
@@ -72,13 +66,14 @@ func TestInTx_ErrDb(t *testing.T) {
 func TestInTx_ErrCallback(t *testing.T) {
 	t.Parallel()
 
-	db := testdb.PgxConnect(t, dsn)
-	t.Cleanup(func() { db.Close(t.Context()) })
+	db := testdb.New(t)
 
-	mngr := pgxtx.NewManager(db, func(tx pgx.Tx) repo { return newRepo(tx) })
+	err := db.WithPgxConn(t, func(conn *pgx.Conn) error {
+		mngr := pgxtx.NewManager(conn, func(tx pgx.Tx) repo { return newRepo(tx) })
 
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
-		return errors.New("error")
+		return mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
+			return errors.New("error")
+		})
 	})
 
 	if err == nil {
@@ -91,15 +86,14 @@ func TestInTx_ErrReadonlyTx(t *testing.T) {
 
 	name := uuid.NewV7().String()
 
-	db := testdb.NewDB(t)
+	db := testdb.New(t)
 
-	conn := testdb.PgxConnect(t, dsn)
-	t.Cleanup(func() { conn.Close(t.Context()) })
+	err := db.WithPgxConn(t, func(conn *pgx.Conn) error {
+		mngr := pgxtx.NewManagerWithOpts(conn, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) repo { return newRepo(tx) })
 
-	mngr := pgxtx.NewManagerWithOpts(conn, pgx.TxOptions{AccessMode: pgx.ReadOnly}, func(tx pgx.Tx) repo { return newRepo(tx) })
-
-	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
-		return repo.Save(ctx, name)
+		return mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
+			return repo.Save(ctx, name)
+		})
 	})
 
 	if err == nil {

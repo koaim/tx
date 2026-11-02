@@ -18,7 +18,7 @@ func TestInTx_OK(t *testing.T) {
 
 	name := uuid.NewV7().String()
 
-	db := testdb.NewDB(t)
+	db := testdb.New(t)
 	t.Cleanup(func() { db.DeleteUser(t, name) })
 
 	mngr := sqlxtx.NewManager(sqlx.NewDb(db.Conn, "pgx"), func(tx *sqlx.Tx) repo { return newRepo(tx) })
@@ -41,7 +41,7 @@ func TestInTx_ErrDb(t *testing.T) {
 	name := uuid.NewV7().String()
 	tooLongName := uuid.NewV7().String() + uuid.NewV7().String()
 
-	db := testdb.NewDB(t)
+	db := testdb.New(t)
 	mngr := sqlxtx.NewManager(sqlx.NewDb(db.Conn, "pgx"), func(tx *sqlx.Tx) repo { return newRepo(tx) })
 
 	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
@@ -63,7 +63,7 @@ func TestInTx_ErrDb(t *testing.T) {
 func TestInTx_ErrCallback(t *testing.T) {
 	t.Parallel()
 
-	db := testdb.NewDB(t)
+	db := testdb.New(t)
 	mngr := sqlxtx.NewManager(sqlx.NewDb(db.Conn, "pgx"), func(tx *sqlx.Tx) repo { return newRepo(tx) })
 
 	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
@@ -80,7 +80,7 @@ func TestInTx_ErrReadonlyTx(t *testing.T) {
 
 	name := uuid.NewV7().String()
 
-	db := testdb.NewDB(t)
+	db := testdb.New(t)
 	mngr := sqlxtx.NewManagerWithOpts(sqlx.NewDb(db.Conn, "pgx"), &sql.TxOptions{ReadOnly: true}, func(tx *sqlx.Tx) repo { return newRepo(tx) })
 
 	err := mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {

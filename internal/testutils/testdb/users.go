@@ -5,6 +5,9 @@ import (
 	"database/sql"
 	"testing"
 	"time"
+
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 )
 
 const (
@@ -15,7 +18,7 @@ type DB struct {
 	Conn *sql.DB
 }
 
-func NewDB(t *testing.T) *DB {
+func New(t *testing.T) *DB {
 	t.Helper()
 
 	db, err := sql.Open("pgx", dsn)
@@ -26,6 +29,20 @@ func NewDB(t *testing.T) *DB {
 	t.Cleanup(func() { db.Close() })
 
 	return &DB{Conn: db}
+}
+
+func (d *DB) WithPgxConn(t *testing.T, f func(*pgx.Conn) error) error {
+	t.Helper()
+
+	conn, err := d.Conn.Conn(t.Context())
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer conn.Close()
+
+	return conn.Raw(func(driverConn any) error {
+		return f(driverConn.(*stdlib.Conn).Conn())
+	})
 }
 
 func (d *DB) UsersExists(t *testing.T, name string) bool {
