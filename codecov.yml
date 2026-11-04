@@ -1,2 +1,3 @@
 ignore:
+  - "internal/example/**/*"
   - "internal/testutils/**/*"

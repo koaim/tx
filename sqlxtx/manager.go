@@ -9,22 +9,26 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type txBeginner interface {
+	BeginTxx(ctx context.Context, opts *sql.TxOptions) (*sqlx.Tx, error)
+}
+
 // Manager runs callbacks in sqlx transactions with a repository of type T.
 type Manager[T any] struct {
-	conn     *sqlx.DB
+	conn     txBeginner
 	wrapToTx func(*sqlx.Tx) T
 	opts     *sql.TxOptions
 }
 
 // NewManager creates a manager with default transaction options.
 // wrapToTx builds a repository from each transaction.
-func NewManager[T any](conn *sqlx.DB, wrapToTx func(*sqlx.Tx) T) *Manager[T] {
+func NewManager[T any](conn txBeginner, wrapToTx func(*sqlx.Tx) T) *Manager[T] {
 	return &Manager[T]{conn: conn, wrapToTx: wrapToTx}
 }
 
 // NewManagerWithOpts creates a manager with the given transaction options.
 // wrapToTx builds a repository from each transaction.
-func NewManagerWithOpts[T any](conn *sqlx.DB, opts *sql.TxOptions, wrapToTx func(*sqlx.Tx) T) *Manager[T] {
+func NewManagerWithOpts[T any](conn txBeginner, opts *sql.TxOptions, wrapToTx func(*sqlx.Tx) T) *Manager[T] {
 	return &Manager[T]{conn: conn, wrapToTx: wrapToTx, opts: opts}
 }
 
