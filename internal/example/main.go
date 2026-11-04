@@ -10,8 +10,9 @@ import (
 )
 
 func main() {
+	db, _ := sql.Open("pgx", "dsn")
 	h := handler.NewHandler(
-		sqltx.NewManager(nil, func(tx *sql.Tx) handler.Tx { return handler.NewTx(repo.NewUsers(tx), repo.NewOrders(tx)) }),
+		sqltx.NewManager(db, func(tx *sql.Tx) handler.Tx { return handler.NewTx(repo.NewUsers(tx), repo.NewOrders(tx)) }),
 	)
 
 	h.Handle(context.Background())
