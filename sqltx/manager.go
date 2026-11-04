@@ -7,22 +7,26 @@ import (
 	"fmt"
 )
 
+type txBeginner interface {
+	BeginTx(ctx context.Context, opts *sql.TxOptions) (*sql.Tx, error)
+}
+
 // Manager runs callbacks in database/sql transactions with a repository of type T.
 type Manager[T any] struct {
-	conn     *sql.DB
+	conn     txBeginner
 	wrapToTx func(*sql.Tx) T
 	opts     *sql.TxOptions
 }
 
 // NewManager creates a manager with default transaction options.
 // wrapToTx builds a repository from each transaction.
-func NewManager[T any](conn *sql.DB, wrapToTx func(*sql.Tx) T) *Manager[T] {
+func NewManager[T any](conn txBeginner, wrapToTx func(*sql.Tx) T) *Manager[T] {
 	return &Manager[T]{conn: conn, wrapToTx: wrapToTx}
 }
 
 // NewManagerWithOpts creates a manager with the given transaction options.
 // wrapToTx builds a repository from each transaction.
-func NewManagerWithOpts[T any](conn *sql.DB, opts *sql.TxOptions, wrapToTx func(*sql.Tx) T) *Manager[T] {
+func NewManagerWithOpts[T any](conn txBeginner, opts *sql.TxOptions, wrapToTx func(*sql.Tx) T) *Manager[T] {
 	return &Manager[T]{conn: conn, wrapToTx: wrapToTx, opts: opts}
 }
 
