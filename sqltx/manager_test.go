@@ -125,6 +125,59 @@ func TestInTx_ErrRollback(t *testing.T) {
 	}
 }
 
+func TestInTx_ErrBegin(t *testing.T) {
+	t.Parallel()
+
+	var (
+		errBeginTx = errors.New("begin tx err")
+	)
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	mock.ExpectBegin().WillReturnError(errBeginTx)
+
+	mngr := sqltx.NewManager(db, func(tx *sql.Tx) repo { return newRepo(tx) })
+
+	err = mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
+		return nil
+	})
+
+	if !errors.Is(err, errBeginTx) {
+		t.Errorf("\nwant: %q\nhave: %q", errBeginTx, err)
+	}
+}
+
+func TestInTx_ErrCommit(t *testing.T) {
+	t.Parallel()
+
+	var (
+		errCommit = errors.New("commit err")
+	)
+
+	db, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+
+	mock.ExpectBegin()
+	mock.ExpectCommit().WillReturnError(errCommit)
+
+	mngr := sqltx.NewManager(db, func(tx *sql.Tx) repo { return newRepo(tx) })
+
+	err = mngr.InTx(t.Context(), func(ctx context.Context, repo repo) error {
+		return nil
+	})
+
+	if !errors.Is(err, errCommit) {
+		t.Errorf("\nwant: %q\nhave: %q", errCommit, err)
+	}
+}
+
 type repo struct {
 	conn sqltx.Conn
 }

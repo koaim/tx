@@ -26,13 +26,15 @@ Then install the adapter for your database library:
 ## Features
 
 - Does not store transactions in `context.Context`
-- Works with `database/sql`, `sqlx`, `pgx`, and `gorm`
-- Compatible with `sqlc` and `jet`
+- Works with [database/sql](https://pkg.go.dev/database/sql), [sqlx](https://github.com/jmoiron/sqlx/), [pgx](https://github.com/jackc/pgx) and [gorm](https://github.com/go-gorm/gorm)
+- Compatible with [sqlc](https://github.com/sqlc-dev/sqlc), [jet](https://github.com/go-jet/jet) and [squirrel](https://github.com/masterminds/squirrel)
 - Configurable transaction isolation levels
 
 ## Example
 
 [Source code](internal/example)
+
+Business logic layer:
 
 ```go
 package handler
@@ -80,12 +82,35 @@ func (h *Handler) Handle(ctx context.Context) error {
 }
 ```
 
+main.go:
+```go
+package main
+
+import (
+	"context"
+	"database/sql"
+
+	"github.com/koaim/tx/internal/example/handler"
+	"github.com/koaim/tx/internal/example/repo"
+	"github.com/koaim/tx/sqltx"
+)
+
+func main() {
+	db, _ := sql.Open("pgx", "dsn")
+	h := handler.NewHandler(
+		sqltx.NewManager(db, func(tx *sql.Tx) handler.Tx { return handler.NewTx(repo.NewUsers(tx), repo.NewOrders(tx)) }),
+	)
+
+	h.Handle(context.Background())
+}
+```
+
 ## Philosophy
 
 Working with transactions in Go can be awkward. Three common approaches are:
 
 - Storing the transaction in `context.Context`
-- Working directly with `*sql.Tx` in the business logic layer
+- Working directly with transaction type (`sql.Tx`, `pgx.Tx` etc.) in the business logic layer
 - Using a single god object for all entities and database operations
 
 Each of these approaches has drawbacks that I am not willing to accept, so I built an alternative.
@@ -98,12 +123,11 @@ type Manager[T any] interface {
 }
 ```
 
-Adapters implement this interface for `database/sql`, `sqlx`, `pgx`, and `gorm`.
-For libraries such as `database/sql` and `pgx`, repositories should depend on an abstraction such as `sqltx.Conn` or `pgxtx.Conn` rather than a concrete type such as `*sql.DB` or `*pgxpool.Pool`. These interfaces expose operations shared by connections and transactions, allowing the same repository implementation to work with either.
+Adapters implement this interface for [database/sql](https://pkg.go.dev/database/sql), [sqlx](https://github.com/jmoiron/sqlx/), [pgx](https://github.com/jackc/pgx) and [gorm](https://github.com/go-gorm/gorm).
 
-As a result, the repository never knows whether it is working with a regular connection or a transaction.
+Each adapter provides (expect [gorm](https://github.com/go-gorm/gorm)) a `Conn` interface that defines the methods shared by its transaction and connection types. This interface should be injected into all repositories. As a result, the repository never knows whether it is working with a regular connection or a transaction.
 
 ### Trade-off
 
-- The library requires a connection pool (`*sql.DB` or `*pgxpool.Pool`) rather than a single connection (`*sql.Conn` or `*pgx.Conn`)
-- Nested transactions are not supported
+- Nested transactions are not supported: each call to `InTx` creates a new independent transaction
+- The library requires repositories to use a connection pool rather than a single connection
