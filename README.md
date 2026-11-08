@@ -81,8 +81,7 @@ func (h *Handler) Handle(ctx context.Context) error {
     })
 }
 ```
-
-main.go:
+`main.go`:
 ```go
 package main
 
