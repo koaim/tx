@@ -126,7 +126,7 @@ Adapters implement this interface for [database/sql](https://pkg.go.dev/database
 
 Each adapter (expect [gorm](https://github.com/go-gorm/gorm)) provides a `Conn` interface that defines the methods shared by its transaction and connection types. This interface should be injected into all repositories. As a result, the repository never knows whether it is working with a regular connection or a transaction.
 
-### Trade-off
+## Trade-off
 
 - Nested transactions are not supported: each call to `InTx` creates a new independent transaction
 - The library requires repositories to use a connection pool rather than a single connection
